@@ -1,0 +1,483 @@
+{% load static %}
+{% load cache %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Glide js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Glide.js/3.4.1/css/glide.core.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Glide.js/3.4.1/css/glide.theme.css">
+    <!-- Owl Carousel js -->
+    <link rel="stylesheet" href="{% static 'css/owl.carousel.min.css' %}">
+    <!-- Boxicons -->
+    <link
+    href="https://unpkg.com/boxicons@2.0.7/css/boxicons.min.css"
+    rel="stylesheet"
+    />
+    <script
+      src="https://kit.fontawesome.com/655257df20.js"
+      crossorigin="anonymous"
+      ></script>
+      <!-- Custom StyleSheet -->
+      <link rel="stylesheet" href="{% static 'css/styles.css' %}" />
+      {% block css %}{% endblock css %}
+    <title>{% block title %}{% endblock title %}</title>
+    <style>
+      /* Cart Popup */
+      .cartpopup{
+        position: fixed;
+        top: 110px;
+        right: 1%;
+        min-width: 300px;
+        height: fit-content;
+        z-index: 9999;
+        padding: 1.1rem;
+        padding-top: 0;
+        border-radius: 1rem;
+        background: #fff;
+        box-shadow: 0 2px 5px #888;
+        display: flex;
+        flex-direction: column;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        transition: 500ms;
+        display: none;
+      }
+      .cartpopup-scrolled{
+        top: 62px;
+      }
+      .cartpopup .cartpopupexit{
+        width: 100%;
+        text-align: right;
+        font-size: 3rem;
+        font-weight: 600;
+        color: #ff9e0d;
+        height: 3.5rem;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .cartpopup .cartpopupprodcontainer{
+        width: 100%;
+        height: fit-content;
+        max-height: 50vh;
+        overflow-y: auto;
+      }
+      .cartpopup .cartpopupprodcontainer .cartpopupprod{
+        width: 100%;
+        padding: .5rem 0;
+        display: flex;
+        flex-wrap: wrap;
+        border-bottom: 1px solid #bbb;
+      }
+      .cartpopup .cartpopupprodcontainer .cartpopupprod img{
+        height: 50px;
+        width: 60px;
+        object-fit: cover;
+      }
+      .cartpopup .cartpopupprodcontainer .cartpopupprod .cartpopupproddesc{
+        width: calc(100% - 100px);
+      }
+      .cartpopup .cartpopupprodcontainer .cartpopupprod .cartpopupproddesc p:last-child{
+        margin-top: .3rem;
+        color: rgba(61, 61, 61, 0.76);
+      }
+      /* .cartpopup .cartpopupprod .cartpopupprodremove{
+        border: 1px solid red;
+      } */
+      .cartpopup .cartpopupprodcontainer .cartpopupprod .cartpopupprodremove button{
+        border: none;
+        outline: none;
+        color: #ff9e0d;
+        cursor: pointer;
+        font-size: 1.7rem;
+        background: transparent;
+      }
+      .cartpopup .cartpopupprodsubtotal{
+        padding: 1rem 0;
+        width: 100%;
+        border-bottom: 1px solid #bbb;
+        margin-top: 1rem;
+      }
+      .cartpopup .cartpopupprodcartcheckout{
+        margin-top: 1rem;
+        width: 100%;
+        padding: 1rem 0;
+      }
+      .cartpopup .cartpopupprodcartcheckout a button{
+        font-size: 1.5rem;
+        padding: .8rem 2rem;
+        background: #ff9e0d;
+        color: #fff;
+        border-radius: 1rem;
+        outline: none;
+        border: none;
+        cursor: pointer;
+        transition: 200ms;
+      }
+      .cartpopup .cartpopupprodcontainer .cartpopupexit:hover,
+      .cartpopup .cartpopupprodcontainer .cartpopupprod .cartpopupprodremove button:hover{
+        color: #ff7a0d;
+        transition: 150ms;
+      }
+      .cartpopup .cartpopupprodcartcheckout a button:hover{
+        background: #ff7a0d;
+      }
+
+      .mobile-nav-item{
+        visibility: hidden;
+        opacity: 0;
+        display: none;
+      }
+      @media screen and (max-width: 768px) {
+        .mobile-nav-item{
+          visibility: visible;
+          opacity: 1;
+          display: block;
+        }
+      }
+      /* Profile Page Input Field Readonly */
+      input:read-only {
+        background: #efe;
+      }
+    </style>
+    <style>
+      body::-webkit-scrollbar {
+        width: 12px;
+      }
+      body::-webkit-scrollbar-track {
+        background: rgba(230, 229, 229, 0.726);  
+      }
+      body::-webkit-scrollbar-thumb {
+        background-color: #ff9e0de3;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Search PopUp -->
+    <div class="search-popup">
+      <div class="nothing"></div>
+      <div class="form">
+        <form action="{% url 'search' %}" method="GET">
+          <input type="search" name="query" id="query" placeholder="Search Products...">
+          <button type="submit">
+            <i class="bx bx-search popup-search-icon"></i>
+          </button>
+        </form>
+      </div>
+      <div class="exit">&times;</div>
+    </div>
+
+    <!-- Message Alert -->
+    {%if messages %}
+    {% for message in messages %}
+    <div class="alert" style="display: none;">
+      <span></span>
+      <span>{{message}}</span>
+      <span>&#10006;</span>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Cart Popup -->
+{% if user.is_authenticated %}
+    <div class="cartpopup">
+      <div class="cartpopupexit">
+        <span style="padding: 0 1rem;">&times;</span>
+      </div>
+      <div class="cartpopupprodcontainer">
+      </div>
+      <div class="cartpopupprodsubtotal">
+        <p><strong></strong></p>
+      </div>
+      <div class="cartpopupprodcartcheckout">
+        <a href="{% url 'cart' %}"><button>View Cart</button></a>
+        <a href="{% url 'checkout' %}"><button>Checkout</button></a>
+      </div>
+    </div>
+{% endif %}
+
+<!-- Profile popup -->
+{% if user.is_authenticated %}
+<div class="profile-popup">
+  <ul>
+    <li><a href="{% url 'profile' user.id %}">Profile</a></li>
+    <li><a href="/admin/" target="_blank">Admin Panel</a></li>
+    <li><a href="{% url 'customers' %}">My Addresses</a></li>
+    <li><a href="{% url 'wishlist' %}">My Favorites</a></li>
+    <li><a href="{% url 'orders' %}">My Orders</a></li>
+    <li><a href="{% url 'change_password' %}">Change Password</a></li>
+    <li><a href="{% url 'logout' %}">Log Out</a></li>
+  </ul>
+</div>
+{% endif %}
+    <!-- Header -->
+      <!-- Top Nav -->
+      <div class="top-nav">
+        <div class="d-flex" style="margin: 0 2rem">
+          <p>Order Online Or Call Us: (+977) 9803178900</p>
+          <ul class="d-flex">
+            {% if user.is_anonymous %}
+            <li style="padding: 0 4px;"><a href="{% url 'login' %}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
+            <li style="padding: 0 4px;"><a href="{% url 'signup' %}"><i class="fas fa-sign-out-alt" style="transform: rotate(-90deg);"></i> Signup</a></li>
+            {% else %}
+            <li style="padding: 0 4px;"><a href="{% url 'profile' user.id %}">{% if user.first_name%}{{user.first_name}}{% else %}{{user.username}}{% endif %}</a></li>
+            {% endif %}
+            <li style="padding: 0 4px;"><a href="{% url 'contact' %}"><i class="fas fa-envelope-square"></i> Contact</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="navigation">
+        <div class="nav-center d-flex">
+        <a href="/" class="logo"><h1>Aqua<span style="color: #ff9e0d;">Master</span></h1></a>
+
+        <!-- For mobile view -->
+          <ul class="nav-list d-flex" style="overflow-y: auto;">
+            <li class="nav-item items-close">
+              <span class="items-close-button">&times;</span>
+            </li>
+            <li class="icons d-flex" style="border-bottom: 1px solid #ddd;width: 100%;justify-content: space-evenly;">
+              {% if user.is_authenticated %}
+                {% if wishlistcount %}
+                  <a href="{% url 'wishlist' %}" class="icon">
+                    <i class="fas fa-heart"></i>
+                    <span class="d-flex mobilewishlistcounter">{{wishlistcount}}</span>
+                  </a>
+                {% elif wishlistcount == 0 %}
+                  <a href="{% url 'wishlist' %}" class="icon">
+                    <i class="fas fa-heart"></i>
+                    <span class="d-flex mobilewishlistcounter">0</span>
+                  </a>
+                {% else %}
+                  <a href="{% url 'wishlist' %}" class="icon">
+                    <i class="fas fa-heart"></i>
+                  </a>
+                {% endif %}
+              {% else %}
+                <a href="{% url 'wishlist' %}" class="icon">
+                  <i class="fas fa-heart"></i>
+                  <span class="d-flex mobilewishlistcounter">0</span>
+                </a>
+              {% endif %}
+              {% if user.is_authenticated %}
+                {% if cartprodcount > 0 %}
+                  <a href="{% url 'cart' %}" class="icon">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="d-flex cartproductcount">{{cartprodcount}}</span>
+                  </a>
+                {% elif cartprodcount == 0 %}
+                  <a href="{% url 'cart' %}" class="icon">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="d-flex cartproductcount">0</span>
+                  </a>
+                {% else %}
+                  <a href="{% url 'cart' %}" class="icon">
+                    <i class="fas fa-shopping-cart"></i>
+                  </a>
+                {% endif %}
+              {% else %}
+                <a href="{% url 'cart' %}" class="icon">
+                  <!-- <i class="bx bx-cart"></i> -->
+                  <i class="fas fa-shopping-cart"></i>
+                  <span class="d-flex">0</span>
+                </a>
+              {% endif %}
+              <div class="icon">
+                <i class="fas fa-search search-icon"></i>
+              </div>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'home' %}" class="nav-link"><i class="fas fa-home"></i> Home</a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'products' %}" class="nav-link"><i class="fas fa-store"></i> Shop </a>
+            </li>
+            <li class="nav-item">
+            <a href="{% url 'terms' %}" class="nav-link"><i class="fas fa-gavel"></i> Terms</a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'about' %}" class="nav-link"><i class="fas fa-smile"></i> About Us</a>
+            </li>
+            <li class="nav-item mobile-nav-item">
+              <a href="{% url 'contact' %}" class="nav-link" style="border-bottom: 1px solid #ddd;"><i class="fas fa-envelope-square"></i> Contact</a>
+            </li>
+            {% if user.profile.is_admin %}
+            <li class="nav-item">
+              <a href="{% url 'dashboard' %}" class="nav-link" style="border-bottom: 1px solid #ddd;"><i class="fas fa-user-shield"></i> Admin</a>
+            </li>
+            {% endif %}
+            {% if user.is_anonymous %}
+            <li class="nav-item mobile-nav-item">
+              <a href="{% url 'login' %}" class="nav-link"><i class="fas fa-sign-in-alt"></i> Login</a>
+            </li>
+            <li class="nav-item mobile-nav-item">
+              <a href="{% url 'signup' %}" class="nav-link"><i class="fas fa-sign-out-alt" style="transform: rotate(-90deg);"></i> Signup</a>
+            </li>
+            {% else %}
+            <li class="nav-item mobile-nav-item">
+              <a href="{% url 'profile' user.id %}" class="nav-link"><i class="bx bxs-user"></i> Profile</a>
+            </li>
+            <li class="nav-item mobile-nav-item">
+              <a href="{% url 'customers' %}" class="nav-link"><i class="bx bxs-home"></i> My Addresses</a>
+            </li>
+            <li class="nav-item mobile-nav-item">
+              <a href="{% url 'wishlist' %}" class="nav-link"><i class="bx bxs-heart"></i> My Favorites</a>
+            </li>
+            <li class="nav-item mobile-nav-item">
+              <a href="{% url 'orders' %}" class="nav-link"><i class='bx bx-list-ol' ></i> My Orders</a>
+            </li>
+            <li class="nav-item mobile-nav-item">
+              <a href="{% url 'change_password' %}" class="nav-link"><i class='bx bxs-key' ></i> Change Password</a>
+            </li>
+            <li class="nav-item mobile-nav-item">
+              <a href="{% url 'logout' %}" class="nav-link"><i class='bx bx-log-out' ></i> logout</a>
+            </li>
+            {% endif %}
+          </ul>
+
+          <div class="icons d-flex" style="margin-right: 20px;">
+            {% if user.is_authenticated %}
+            <div class="icon show-prof">
+              <!-- <i class="bx bxs-user"></i> -->
+              <i class="fas fa-user"></i>
+            </div>
+            {% endif %}
+            <div class="icon">
+              <!-- <i class="bx bx-search search-icon"></i> -->
+              <i class="fas fa-search search-icon"></i>
+            </div>
+            {% if user.is_authenticated %}
+            {% if wishlistcount %}
+            <a href="{% url 'wishlist' %}" class="icon">
+              <!-- <i class="bx bx-heart"></i> -->
+              <i class="fas fa-heart"></i>
+              <span class="d-flex wishlistcounter">{{wishlistcount}}</span>
+            </a>
+            {% elif wishlistcount == 0 %}
+            <a href="{% url 'wishlist' %}" class="icon">
+              <i class="fas fa-heart"></i>
+              <!-- <i class="bx bx-heart"></i> -->
+              <span class="d-flex wishlistcounter">0</span>
+            </a>
+            {% else %}
+            <a href="{% url 'wishlist' %}" class="icon">
+              <i class="fas fa-heart"></i>
+              <!-- <i class="bx bx-heart"></i> -->
+            </a>
+            {% endif %}
+            {% else %}
+            <a href="{% url 'wishlist' %}" class="icon">
+              <i class="fas fa-heart"></i>
+              <!-- <i class="bx bx-heart"></i> -->
+              <span class="d-flex wishlistcounter">0</span>
+            </a>
+            {% endif %}
+            {% if user.is_authenticated %}
+            {% if cartprodcount > 0 %}
+            <a href="{% url 'cart' %}" class="icon">
+              <!-- <i class="bx bx-cart"></i> -->
+              <i class="fas fa-shopping-cart"></i>
+              <span class="d-flex cartproductcount">{{cartprodcount}}</span>
+            </a>
+            {% elif cartprodcount == 0 %}
+            <a href="{% url 'cart' %}" class="icon">
+              <!-- <i class="bx bx-cart"></i> -->
+              <i class="fas fa-shopping-cart"></i>
+              <span class="d-flex cartproductcount">0</span>
+            </a>
+            {% else %}
+            <a href="{% url 'cart' %}" class="icon">
+              <i class="fas fa-shopping-cart"></i>
+              <!-- <i class="bx bx-cart"></i> -->
+            </a>
+            {% endif %}
+            {% else %}
+            <a href="{% url 'cart' %}" class="icon">
+              <i class="fas fa-shopping-cart"></i>
+              <!-- <i class="bx bx-cart"></i> -->
+              <span class="d-flex">0</span>
+            </a>
+            {% endif %}
+          </div>
+
+          <div class="hamburger">
+            <i class="bx bx-menu-alt-left"></i>
+          </div>
+        </div>
+      </div>
+    <!-- </header> -->
+
+    {% block maincontent %}
+    {% endblock maincontent %}
+
+    <!-- Contact -->
+    <section class="section contact">
+      <div class="row">
+        <div class="col">
+          <h2>EXCELLENT SUPPORT</h2>
+          <p>We love our customers and they can reach us any time
+          of day we will be at your service 24/7</p>
+          <a href="{% url 'contact' %}" class="btn btn-1">Contact</a>
+        </div>
+        <div class="col">
+          <form action="{% url 'subscription_email' %}" method="post">
+            {% csrf_token %}
+            <div>
+              <input type="email" placeholder="Email Address" name='email' required>
+              <input type="submit" value="Send">
+              <!-- <a href="">Send</a> -->
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="row">
+        <div class="col d-flex">
+          <h4>INFORMATION</h4>
+          <a href="{% url 'about' %}">About Us</a>
+          <a href="{% url 'contact' %}">Contact Us</a>
+          <a href="{% url 'terms' %}">Term & Conditions</a>
+        </div>
+        <div class="col d-flex">
+          <h4>USEFUL LINK</h4>
+          <a href="{% url 'home' %}">Home</a>
+          <a href="{% url 'products' %}">Aqua Heaven</a>
+          <a href="{% url 'django.contrib.sitemaps.views.sitemap' %}">Sitemap</a>
+        </div>
+        <div class="col d-flex">
+          <span><i class='bx bxl-facebook-square'></i></span>
+          <span><i class='bx bxl-instagram-alt' ></i></span>
+          <span><i class='bx bxl-twitter' ></i></span>
+          <span><i class='bx bxl-youtube' ></i></span>
+        </div>
+      </div>
+    </footer>
+
+  </body>
+  <script src="{% static 'js/jquery.js' %}"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Glide.js/3.4.1/glide.min.js"></script>
+  <script src="{% static 'js/owl.carousel.min.js' %}"></script>
+  <script src="{% static 'js/slider.js' %}"></script>
+  <script src="{% static 'js/index.js' %}"></script>
+  <script src="{% static 'js/wishlist.js' %}"></script>
+  <script src="{% static 'js/cart.js' %}"></script>
+  <script>
+    $(()=>{
+    setTimeout(function(){
+      $('.alert').fadeIn();
+      setTimeout(function(){
+        $('.alert').fadeOut();
+      }, 2200);
+    }, 2000);
+    $('.alert span:last-child').on('click',function(){
+        $(this).parent().fadeOut();
+      })
+  })
+  </script>
+  {% block jscode %}
+  {% endblock jscode %}
+</html>

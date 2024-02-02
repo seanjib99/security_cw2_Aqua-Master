@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Search Results{% endblock title %}
+{% block maincontent %}
+<!-- Message popup -->
+<div class="message-popup select-address-popup">
+    <div></div>
+    <p><span style="color: rgb(251, 252, 249);">Login</span> or <span style="color: rgb(251, 253, 249);">Signup</span> to add products to your cart.</p>
+    <div class="hide-message-popup">&times;</div>
+  </div>
+
+<section class="section all-products" id="products">
+    <div class="top container">
+      <h1>Search Results For: {{query}}</h1>
+    </div>
+    <div class="product-center">
+        {% if allprod %}
+        {% for pro in allprod %}
+        <div class="product-item">
+            <div class="overlay">
+                <a href="{% url 'productdetail' pro.id %}" class="product-thumb">
+                    <img src="{{ pro.photo.url }}" alt="" />
+                </a>
+                <span class="discount">{{pro.discount_percent}}%</span>
+            </div>
+            <div class="product-info">
+                <span>{{ pro.category.title}}</span>
+                <a href="{% url 'productdetail' pro.id %}">{{ pro.name }}</a>
+                <h4>Rs. {{ pro.selling_price }}</h4>
+                {% if pro.available_quantity > 0 %}
+                    <div class="cartbutton">
+                    {% if user.is_authenticated %}
+                        <button data-id="{{pro.id}}" data-url="{% url 'add_to_cart' %}" class="initialbutton ib{{pro.id}}">Add To Cart</button>
+                        <button data-id="{{pro.id}}" data-url="{% url 'remove_from_cart' %}" class="minusbutton mb{{pro.id}}">-</button>
+                        <span data-id="{{pro.id}}"class="buttontext bt{{pro.id}}"></span>
+                        <button data-id="{{pro.id}}" data-url="{% url 'add_to_cart' %}" class="plusbutton pb{{pro.id}}">+</button>
+                        {% else %}
+                        <button class="initialbutton show-message-popup">Add To Cart</button>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="cartbutton">
+                        <button class="initialbuttondisabled" style="cursor: not-allowed;background: rgb(3, 180, 211);">Out of Stock</button>
+                    </div>
+                {% endif %}
+            </div>
+            <ul class="icons">
+                <a href="{% url 'productdetail' pro.id %}"><li> Quick View</li></a>
+            </ul>
+        </div>
+        {% endfor %}
+        {% else %}
+        <h3>No search results found!!</h3>
+        {% endif %}
+    </div>
+
+  </section>
+{% endblock maincontent %}
+{% block jscode %}
+{% endblock jscode %}

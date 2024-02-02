@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block maincontent %}
+<section class="section all-products" id="products">
+    <div class="top container">
+      <h1 style="border-bottom: 1px solid #888;">My Favorite Products</h1>
+    </div>
+    <div class="product-center">
+        {% if products %}
+        {% for pro in products %}
+        <div class="product-item product-item{{pro.id}}">
+            <div class="overlay">
+                <a href="{% url 'productdetail' pro.id %}" class="product-thumb">
+                    <img src="{{ pro.photo.url }}" alt="" />
+                </a>
+                <span class="discount">{{pro.discount_percent}}%</span>
+            </div>
+            <div class="product-info">
+                <span>{{ pro.category.title}}</span>
+                <a href="{% url 'productdetail' pro.id %}">{{ pro.name }}</a>
+                <h4>Rs. {{ pro.selling_price }}</h4>
+                <div class="cartbutton">
+                    <button data-id="{{pro.id}}" data-url="{% url 'add_to_wishlist' %}" class="wishlistbutton" >Remove</button>
+                </div>
+            </div>
+            <ul class="icons">
+                <a href="{% url 'productdetail' pro.id %}"><li> Quick View</li></a>
+            </ul>
+        </div>
+        {% endfor %}
+        {% else %}
+        <h3>No favorite products yet🥺</h3>
+        {% if user.is_anonymous %}
+        <h3><a style="color: #ff7a0d" href="{% url 'login' %}">Login</a> or <a style="color: #ff7a0d;" href="{% url 'signup' %}">Signup</a> to add products to your favorites😃</h3>
+        {% endif %}
+        {% endif %}
+    </div>
+
+  </section>
+{% endblock maincontent %}
+{% block jscode %}
+<script>
+    $(()=>{
+        let wishcount = parseInt($('.wishlistcounter').text())
+        $('.wishlistbutton').on('click', function(e){
+            prod_id = $(this).attr('data-id')
+            e.preventDefault();
+            url = $(this).attr('data-url')
+            console.log(prod_id, url)
+            $.ajax({
+                type: "POST",
+                url : url,
+                data:{
+                    prod_id:prod_id
+                },
+                success: function(response){
+                    if (response.message === 'removed') {
+                        $(`.product-item${prod_id}`).css({'display':'none', 'visibility':'hidden', 'opacity':'0'})
+                        wishcount = wishcount - 1
+                    }
+                    $('.wishlistcounter').text(wishcount);
+                    $('.mobilewishlistcounter').text(wishcount);
+                },
+                error:function(response){
+                    console.log('Error: ', response)
+                }
+            })
+    })
+})
+</script>
+{% endblock jscode %}

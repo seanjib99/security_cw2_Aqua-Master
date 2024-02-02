@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Checkout{% endblock title %}
+{% block maincontent %}
+<div class="message-popup select-address-popup">
+    <div></div>
+    <p>Select or add an address first</p>
+    <div class="hide-message-popup">&times;</div>
+</div>
+
+
+<div class="container checkout-container">
+    <div class="checkout-products">
+        <h2>Order Summary</h2>
+        {% for p in cartprod %}
+        <div class="checkout-product">
+            <img src="{{p.product.photo.url}}" alt="" />
+            <div>
+                <p><strong>{{p.product.name}}</strong></p>
+                <span>Quantity: {{p.quantity}}</span> <br />
+                <span><strong>Price:</strong> Rs.{{p.sub_total}}</span> 
+                <input type="hidden" name="subTotals" class="subTotals" data-subtotal="{{p.sub_total}}">
+            </div>
+        </div>
+        {% endfor %}
+        <h4 class="prodOnlyTotal"></h4>
+        <div class="checkout-terms">
+            <p style="color: #444;">
+                Term and condition: Lorem ipsum dolor sit amet, consectetur adipisicing elit. Nisi dicta corporis ape
+                riam vel deleniti dolorum omnis, accusantium iste dolores, ipsum sequi, saepe architecto amet sint qu
+            </p>
+        </div>
+    </div>
+    <div class="payment">
+        <div class="another-address">
+            <button>Add new address</button>
+        </div>
+        <div class="customer-form">
+            <form action="{% url 'checkout' %}" method="post" novalidate>
+                <h3>Add New Customer/Address</h3>
+                {% csrf_token %}
+                {% for fm in form %}
+                <i style="color: red;font-style: normal;">{{fm.errors|striptags}}</i> {{fm.label_tag}}
+                    {{fm}}
+                {% endfor %}
+    
+                <div class="buttons">
+                    <a href="{% url 'home' %}"><button type="button" class="cancelbtn">Cancel</button></a>
+                    <button type="submit" class="signupbtn">Add Adress</button>
+                </div>
+                {% if form.non_field_errors %}
+                {% for error in form.non_field_errors %}
+                    <p class='form-field-error' style="color: red;">{{error}}</p>
+                {% endfor %}
+                {% endif %}
+            </form>
+        </div>
+        <form action="{% url 'place_order' %}" method="post">
+            {% csrf_token %}
+            <h3 style="border-bottom: 1px solid #888;">Select Address</h3>
+            {% if customers %}
+            {% for c in customers %}
+            <div class="address">
+                <div class="address-radio">
+                    <input type="radio" name="address" id="address" value="{{c.id}}">
+                </div>
+                <div class="address-desc">
+                    <h4>{{c.full_name}}</h4>
+                <p>{{c.locality}}, {{c.address}}, {{c.city }} -{% if c.zip_code %}{{c.zip_code}}{% endif %}</p>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <h4 style="padding: 1rem;text-align: center;">No Address Yet</h4>
+            {% endif %}
+            <div class="payment-option-box">
+                <h4>Payment options:</h4>
+                <select name="payment-option" id="payment-option">
+                    <option value="1">Cash On Delivery</option>
+                </select>
+            </div>
+            {% if customers %}
+            <input  type="submit" class="checkout-submit" value="Submit">
+            {% else %}
+            <input type="submit" class="show-message-popup" value="Submit">
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock maincontent %}
+{% block jscode %}
+<script>
+    const subTotals = document.querySelectorAll('.subTotals');
+    let total = 0
+    subTotals.forEach(element => {
+      total +=parseFloat(element.getAttribute('data-subtotal'))
+    });
+    document.querySelector('.prodOnlyTotal').innerText = 'Total cost: Rs.'+total+'.0';
+    console.log(total)
+  </script>
+{% endblock jscode %}
